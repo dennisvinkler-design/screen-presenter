@@ -64,7 +64,7 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
           <input type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} disabled={isUploading} />
         </label>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 max-h-[560px] overflow-auto pr-1">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-[560px] overflow-auto pr-1">
         {images.map((f) => (
           <Card key={f.url} className="overflow-hidden bg-neutral-900 border-neutral-800 group relative">
             <button
