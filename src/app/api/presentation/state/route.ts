@@ -68,14 +68,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    for (const slide of body.slides) {
-      if (!Array.isArray(slide.images) || (slide.images as any).length !== 4) {
-        return NextResponse.json(
-          { success: false, error: 'Each slide must have exactly 4 images' },
-          { status: 400 }
-        );
-      }
-    }
+    const normalizedSlides = body.slides.map((s) => {
+      const arr = Array.isArray(s.images) ? [...(s.images as any[])] : [];
+      while (arr.length < 4) arr.push('');
+      if (arr.length > 4) arr.length = 4;
+      return { images: arr as [string, string, string, string] };
+    });
 
     const supabase = getSupabase();
     if (!supabase) {
@@ -85,7 +83,7 @@ export async function POST(request: NextRequest) {
       .from('presentations')
       .upsert({
         id: 'default',
-        slides: body.slides as any,
+        slides: normalizedSlides as any,
         current_slide_index: body.currentSlideIndex,
         updated_at: new Date().toISOString(),
       })
