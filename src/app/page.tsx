@@ -216,7 +216,7 @@ export default function HomePage() {
           </div>
           <p className="text-sm text-neutral-500">Open these URLs in fullscreen on their respective displays.</p>
         </div>
-        <p className="mt-12">Built with ❤️ on Vercel</p>
+        {/* footer note removed */}
       </footer>
     </div>
   );
