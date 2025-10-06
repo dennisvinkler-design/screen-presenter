@@ -72,7 +72,9 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
               className="block w-full"
               draggable
               onDragStart={(e) => {
+                e.dataTransfer.setData('text/uri-list', f.url);
                 e.dataTransfer.setData('text/plain', f.url);
+                e.dataTransfer.effectAllowed = 'copy';
               }}
             >
               <CardContent className="p-0">

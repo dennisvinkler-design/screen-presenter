@@ -63,14 +63,15 @@ function SortableSlideItem({ slide, index, onEdit }: SortableSlideItemProps) {
         <CardContent className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <span className="font-mono text-neutral-500 text-lg w-8">{index + 1}</span>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               {slide.images.map((img, imgIndex) => (
                 <div
                   key={imgIndex}
                   className="w-24 h-14 rounded-md overflow-hidden bg-neutral-800 border border-transparent"
-                  onDragOver={(e) => { e.preventDefault(); }}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
                   onDrop={async (e) => {
-                    const url = e.dataTransfer.getData('text/plain');
+                    e.preventDefault();
+                    const url = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
                     if (!url) return;
                     const { updateSlideImages } = usePresentationStore.getState();
                     const newImages = [...slide.images] as [string, string, string, string];
