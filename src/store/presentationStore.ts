@@ -20,7 +20,7 @@ interface PresentationActions {
   goToSlide: (index: number) => Promise<void>;
   addSlide: () => Promise<void>;
   deleteSlide: (index: number) => Promise<void>;
-  updateSlideImages: (index: number, images: [string, string, string]) => Promise<void>;
+  updateSlideImages: (index: number, images: [string, string, string, string]) => Promise<void>;
   reorderSlides: (oldIndex: number, newIndex: number) => Promise<void>;
   setError: (error: string | null) => void;
 }
@@ -258,7 +258,7 @@ export const usePresentationStore = create<PresentationStore>()(
       }
     },
 
-    updateSlideImages: async (index: number, images: [string, string, string]) => {
+    updateSlideImages: async (index: number, images: [string, string, string, string]) => {
       const { slides, isUpdating } = get();
       if (index < 0 || index >= slides.length || isUpdating) return;
 
