@@ -209,10 +209,14 @@ export default function HomePage() {
               <Monitor className="h-6 w-6 text-blue-500"/>
               <span>Screen 2: <code className="bg-neutral-800 text-blue-400 px-2 py-1 rounded">/display/2</code></span>
             </div>
-            <div className="flex items-center gap-3 p-4 border border-neutral-800 rounded-lg bg-neutral-900">
-              <Monitor className="h-6 w-6 text-blue-500"/>
-              <span>Screen 3: <code className="bg-neutral-800 text-blue-400 px-2 py-1 rounded">/display/3</code></span>
-            </div>
+          <div className="flex items-center gap-3 p-4 border border-neutral-800 rounded-lg bg-neutral-900">
+            <Monitor className="h-6 w-6 text-blue-500"/>
+            <span>Screen 3: <code className="bg-neutral-800 text-blue-400 px-2 py-1 rounded">/display/3</code></span>
+          </div>
+          <div className="flex items-center gap-3 p-4 border border-neutral-800 rounded-lg bg-neutral-900">
+            <Monitor className="h-6 w-6 text-blue-500"/>
+            <span>Screen 4: <code className="bg-neutral-800 text-blue-400 px-2 py-1 rounded">/display/4</code></span>
+          </div>
           </div>
           <p className="text-sm text-neutral-500">Open these URLs in fullscreen on their respective displays.</p>
         </div>

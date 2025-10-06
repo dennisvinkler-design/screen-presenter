@@ -6,7 +6,7 @@ import { useEffect, useState, useRef } from 'react';
 import { AlertTriangle, ImageOff } from 'lucide-react';
 
 interface Slide {
-  images: [string, string, string];
+  images: [string, string, string, string];
 }
 
 interface PresentationData {
@@ -67,7 +67,7 @@ export default function DisplayPage() {
     }
   }, [imageUrl]);
 
-  if (screenIndex < 0 || screenIndex > 2) {
+  if (screenIndex < 0 || screenIndex > 3) {
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-neutral-950 text-neutral-200 text-4xl font-bold">
         Invalid Screen ID

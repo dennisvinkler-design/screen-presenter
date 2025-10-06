@@ -11,7 +11,7 @@ function getSupabase() {
 }
 
 interface Slide {
-  images: [string, string, string];
+  images: [string, string, string, string];
 }
 
 interface PresentationData {
@@ -69,9 +69,9 @@ export async function POST(request: NextRequest) {
     }
 
     for (const slide of body.slides) {
-      if (!Array.isArray(slide.images) || (slide.images as any).length !== 3) {
+      if (!Array.isArray(slide.images) || (slide.images as any).length !== 4) {
         return NextResponse.json(
-          { success: false, error: 'Each slide must have exactly 3 images' },
+          { success: false, error: 'Each slide must have exactly 4 images' },
           { status: 400 }
         );
       }

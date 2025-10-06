@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 
 interface Slide {
-  images: [string, string, string];
+  images: [string, string, string, string];
 }
 
 interface PresentationState {
@@ -183,7 +183,7 @@ export const usePresentationStore = create<PresentationStore>()(
 
       try {
         const newSlide: Slide = {
-          images: ['', '', '']
+          images: ['', '', '', '']
         };
         const newSlides = [...slides, newSlide];
 

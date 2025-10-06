@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ImageWithLoader } from './ImageWithLoader';
 interface Slide {
-  images: [string, string, string];
+  images: [string, string, string, string];
 }
 interface SortableSlideItemProps {
   slide: Slide;

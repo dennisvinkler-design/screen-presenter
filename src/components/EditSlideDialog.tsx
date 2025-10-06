@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { usePresentationStore } from '@/store/presentationStore';
 import { Image as ImageIcon, Loader2 } from 'lucide-react';
 interface Slide {
-  images: [string, string, string];
+  images: [string, string, string, string];
 }
 interface EditSlideDialogProps {
   isOpen: boolean;
@@ -22,7 +22,7 @@ interface EditSlideDialogProps {
   slideIndex: number | null;
 }
 export function EditSlideDialog({ isOpen, onOpenChange, slide, slideIndex }: EditSlideDialogProps) {
-  const [imageUrls, setImageUrls] = useState<[string, string, string]>(['', '', '']);
+  const [imageUrls, setImageUrls] = useState<[string, string, string, string]>(['', '', '', '']);
   const { updateSlideImages, isUpdating } = usePresentationStore();
   useEffect(() => {
     if (slide) {
@@ -36,7 +36,7 @@ export function EditSlideDialog({ isOpen, onOpenChange, slide, slideIndex }: Edi
     }
   };
   const handleUrlChange = (index: number, value: string) => {
-    const newUrls = [...imageUrls] as [string, string, string];
+    const newUrls = [...imageUrls] as [string, string, string, string];
     newUrls[index] = value;
     setImageUrls(newUrls);
   };
