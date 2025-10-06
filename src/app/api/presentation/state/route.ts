@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+function getSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return null;
+  }
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
 
 interface Slide {
   images: [string, string, string];
@@ -17,6 +21,10 @@ interface PresentationData {
 
 export async function GET() {
   try {
+    const supabase = getSupabase();
+    if (!supabase) {
+      return NextResponse.json({ success: false, error: 'Supabase env not configured' }, { status: 500 });
+    }
     const { data, error } = await supabase
       .from('presentations')
       .select('*')
@@ -69,6 +77,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const supabase = getSupabase();
+    if (!supabase) {
+      return NextResponse.json({ success: false, error: 'Supabase env not configured' }, { status: 500 });
+    }
     const { data, error } = await supabase
       .from('presentations')
       .upsert({
