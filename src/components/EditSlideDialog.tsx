@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePresentationStore } from '@/store/presentationStore';
 import { Image as ImageIcon, Loader2 } from 'lucide-react';
+import { ImageLibrary } from '@/components/ImageLibrary';
 interface Slide {
   images: [string, string, string, string];
 }
@@ -50,20 +51,31 @@ export function EditSlideDialog({ isOpen, onOpenChange, slide, slideIndex }: Edi
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-4">
-          {imageUrls.map((url, index) => (
-            <div key={index} className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor={`url-${index}`} className="text-right text-neutral-400">
-                Screen {index + 1}
-              </Label>
-              <Input
-                id={`url-${index}`}
-                value={url}
-                onChange={(e) => handleUrlChange(index, e.target.value)}
-                className="col-span-3 bg-neutral-800 border-neutral-700 focus:ring-blue-500 text-neutral-200"
-                placeholder="https://images.unsplash.com/..."
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              {imageUrls.map((url, index) => (
+                <div key={index} className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor={`url-${index}`} className="text-right text-neutral-400">
+                    Screen {index + 1}
+                  </Label>
+                  <Input
+                    id={`url-${index}`}
+                    value={url}
+                    onChange={(e) => handleUrlChange(index, e.target.value)}
+                    className="col-span-3 bg-neutral-800 border-neutral-700 focus:ring-blue-500 text-neutral-200"
+                    placeholder="Paste image URL or pick from library"
+                  />
+                </div>
+              ))}
             </div>
-          ))}
+            <div className="border border-neutral-800 rounded-md p-3">
+              <ImageLibrary onSelect={(url) => {
+                const firstEmpty = imageUrls.findIndex((u) => !u);
+                const slot = firstEmpty === -1 ? 0 : firstEmpty;
+                handleUrlChange(slot, url);
+              }} />
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button
