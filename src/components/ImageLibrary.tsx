@@ -30,14 +30,23 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
     if (!files || files.length === 0) return;
     setIsUploading(true);
     try {
-      const uploads: Promise<Response>[] = [];
+      const uploadedUrls: string[] = [];
       for (const file of Array.from(files)) {
         const form = new FormData();
         form.append('file', file);
-        uploads.push(fetch('/api/images/upload', { method: 'POST', body: form }));
+        const res = await fetch('/api/images/upload', { method: 'POST', body: form });
+        if (res.ok) {
+          const { data } = await res.json();
+          if (data?.url) uploadedUrls.push(data.url);
+        }
       }
-      await Promise.all(uploads);
-      await refresh();
+      if (uploadedUrls.length > 0) {
+        // Optimistisk opdatering så billeder vises med det samme
+        setImages((prev) => [...uploadedUrls, ...prev]);
+        setCacheKey((k) => k + 1);
+      }
+      // Ekstra refresh efter et kort øjeblik for at fange eventuel forsinkelse i Storage-list
+      setTimeout(() => { refresh(); }, 800);
     } finally {
       setIsUploading(false);
       e.target.value = '';
