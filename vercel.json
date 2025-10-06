@@ -3,14 +3,7 @@
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "functions": {
-    "api/presentation/state.ts": {
-      "maxDuration": 10
-    },
-    "api/health.ts": {
-      "maxDuration": 5
-    }
-  },
+  "functions": {},
   "headers": [
     {
       "source": "/api/(.*)",
