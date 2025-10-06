@@ -10,12 +10,14 @@ interface ImageLibraryProps {
 export function ImageLibrary({ onSelect }: ImageLibraryProps) {
   const [images, setImages] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [cacheKey, setCacheKey] = useState(0);
 
   async function refresh() {
     const res = await fetch('/api/images');
     if (res.ok) {
       const { data } = await res.json();
       setImages(data || []);
+      setCacheKey((k) => k + 1);
     }
   }
 
@@ -24,17 +26,22 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
   }, []);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
     setIsUploading(true);
-    const form = new FormData();
-    form.append('file', file);
-    const res = await fetch('/api/images/upload', { method: 'POST', body: form });
-    setIsUploading(false);
-    if (res.ok) {
+    try {
+      const uploads: Promise<Response>[] = [];
+      for (const file of Array.from(files)) {
+        const form = new FormData();
+        form.append('file', file);
+        uploads.push(fetch('/api/images/upload', { method: 'POST', body: form }));
+      }
+      await Promise.all(uploads);
       await refresh();
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
     }
-    e.target.value = '';
   }
 
   return (
@@ -46,7 +53,7 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
         </div>
         <label className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-neutral-800 hover:bg-neutral-700 cursor-pointer">
           <Upload className="h-4 w-4" /> Upload
-          <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={isUploading} />
+          <input type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} disabled={isUploading} />
         </label>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -54,7 +61,7 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
           <Card key={url} className="overflow-hidden bg-neutral-900 border-neutral-800">
             <button onClick={() => onSelect(url)} className="block w-full">
               <CardContent className="p-0">
-                <img src={url} alt="" className="w-full h-32 object-cover" />
+                <img src={`${url}?v=${cacheKey}`} alt="" className="w-full h-32 object-cover" />
               </CardContent>
             </button>
           </Card>
