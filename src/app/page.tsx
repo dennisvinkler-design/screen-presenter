@@ -55,9 +55,9 @@ export default function HomePage() {
   const renderSlidePreview = (slide: { images: string[] } | undefined, title: string, loading: boolean) => (
     <div className="space-y-4">
       <h3 className="text-xl font-semibold text-neutral-400 tracking-wider">{title}</h3>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {loading ? (
-          [...Array(3)].map((_, index) => (
+          [...Array(4)].map((_, index) => (
             <div key={index} className="space-y-2">
               <Skeleton className="h-5 w-20" />
               <Skeleton className="aspect-video w-full" />
@@ -75,7 +75,7 @@ export default function HomePage() {
             </div>
           ))
         ) : (
-          [...Array(3)].map((_, index) => (
+          [...Array(4)].map((_, index) => (
             <div key={index} className="space-y-2">
               <p className="text-sm font-medium text-neutral-500">Screen {index + 1}</p>
               <div className="aspect-video bg-neutral-900 border border-neutral-800 rounded-lg flex items-center justify-center">

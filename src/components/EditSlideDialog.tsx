@@ -43,7 +43,7 @@ export function EditSlideDialog({ isOpen, onOpenChange, slide, slideIndex }: Edi
   };
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] bg-neutral-900 border-neutral-800 text-neutral-200">
+      <DialogContent className="sm:max-w-[980px] bg-neutral-900 border-neutral-800 text-neutral-200">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-white">Edit Slide {slideIndex !== null ? slideIndex + 1 : ''}</DialogTitle>
           <DialogDescription className="text-neutral-400">
