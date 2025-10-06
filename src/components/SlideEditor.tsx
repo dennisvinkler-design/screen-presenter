@@ -65,7 +65,19 @@ function SortableSlideItem({ slide, index, onEdit }: SortableSlideItemProps) {
             <span className="font-mono text-neutral-500 text-lg w-8">{index + 1}</span>
             <div className="grid grid-cols-3 gap-3">
               {slide.images.map((img, imgIndex) => (
-                <div key={imgIndex} className="w-24 h-14 rounded-md overflow-hidden bg-neutral-800">
+                <div
+                  key={imgIndex}
+                  className="w-24 h-14 rounded-md overflow-hidden bg-neutral-800 border border-transparent"
+                  onDragOver={(e) => { e.preventDefault(); }}
+                  onDrop={async (e) => {
+                    const url = e.dataTransfer.getData('text/plain');
+                    if (!url) return;
+                    const { updateSlideImages } = usePresentationStore.getState();
+                    const newImages = [...slide.images] as [string, string, string, string];
+                    newImages[imgIndex] = url;
+                    await updateSlideImages(index, newImages);
+                  }}
+                >
                   <ImageWithLoader src={img} alt={`Slide ${index + 1} Screen ${imgIndex + 1}`} />
                 </div>
               ))}

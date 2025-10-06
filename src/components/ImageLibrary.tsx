@@ -8,7 +8,8 @@ interface ImageLibraryProps {
 }
 
 export function ImageLibrary({ onSelect }: ImageLibraryProps) {
-  const [images, setImages] = useState<string[]>([]);
+  type FileRow = { name: string; url: string };
+  const [images, setImages] = useState<FileRow[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [cacheKey, setCacheKey] = useState(0);
 
@@ -30,19 +31,19 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
     if (!files || files.length === 0) return;
     setIsUploading(true);
     try {
-      const uploadedUrls: string[] = [];
+      const uploaded: FileRow[] = [];
       for (const file of Array.from(files)) {
         const form = new FormData();
         form.append('file', file);
         const res = await fetch('/api/images/upload', { method: 'POST', body: form });
         if (res.ok) {
           const { data } = await res.json();
-          if (data?.url) uploadedUrls.push(data.url);
+          if (data?.url) uploaded.push({ name: data.url.split('/').pop() || data.url, url: data.url });
         }
       }
-      if (uploadedUrls.length > 0) {
+      if (uploaded.length > 0) {
         // Optimistisk opdatering så billeder vises med det samme
-        setImages((prev) => [...uploadedUrls, ...prev]);
+        setImages((prev) => [...uploaded, ...prev]);
         setCacheKey((k) => k + 1);
       }
       // Ekstra refresh efter et kort øjeblik for at fange eventuel forsinkelse i Storage-list
@@ -66,12 +67,29 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
         </label>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {images.map((url) => (
-          <Card key={url} className="overflow-hidden bg-neutral-900 border-neutral-800">
-            <button onClick={() => onSelect(url)} className="block w-full">
+        {images.map((f) => (
+          <Card key={f.url} className="overflow-hidden bg-neutral-900 border-neutral-800 group relative">
+            <button
+              onClick={() => onSelect(f.url)}
+              className="block w-full"
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', f.url);
+              }}
+            >
               <CardContent className="p-0">
-                <img src={`${url}?v=${cacheKey}`} alt="" className="w-full h-32 object-cover" />
+                <img src={`${f.url}?v=${cacheKey}`} alt="" className="w-full h-32 object-cover" draggable={false} />
               </CardContent>
+            </button>
+            <button
+              className="absolute top-2 right-2 text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white opacity-0 group-hover:opacity-100"
+              onClick={async (e) => {
+                e.stopPropagation();
+                await fetch(`/api/images?name=${encodeURIComponent(f.name)}`, { method: 'DELETE' });
+                setImages((prev) => prev.filter((x) => x.name !== f.name));
+              }}
+            >
+              Delete
             </button>
           </Card>
         ))}
