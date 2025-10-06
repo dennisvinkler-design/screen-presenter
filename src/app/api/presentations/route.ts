@@ -8,10 +8,21 @@ function getSupabase() {
   return createClient(url, key);
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const supabase = getSupabase();
     if (!supabase) return NextResponse.json({ success: false, error: 'Supabase not configured' }, { status: 500 });
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    if (id) {
+      const { data, error } = await supabase
+        .from('presentations')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (error) throw error;
+      return NextResponse.json({ success: true, data });
+    }
     const { data, error } = await supabase
       .from('presentations')
       .select('id, updated_at')
@@ -19,8 +30,8 @@ export async function GET() {
     if (error) throw error;
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('List presentations failed:', error);
-    return NextResponse.json({ success: false, error: 'Failed to list presentations' }, { status: 500 });
+    console.error('List/get presentation failed:', error);
+    return NextResponse.json({ success: false, error: 'Failed to fetch presentations' }, { status: 500 });
   }
 }
 

@@ -11,6 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { SlideEditor } from '@/components/SlideEditor';
 import { ImageWithLoader } from '@/components/ImageWithLoader';
+import { PresentationManager } from '@/components/PresentationManager';
+import { ImageLibrary } from '@/components/ImageLibrary';
 
 export default function HomePage() {
   const {
@@ -113,6 +115,45 @@ export default function HomePage() {
             </p>
           </header>
           
+          <section id="workspace" className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold text-neutral-300">Saved presentations</h3>
+                <PresentationManager
+                  onLoad={async (id) => {
+                    const res = await fetch(`/api/presentations?id=${encodeURIComponent(id)}`);
+                    if (res.ok) {
+                      const { data } = await res.json();
+                      if (data) {
+                        initializeState();
+                        await fetch('/api/presentation/state', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ slides: data.slides, currentSlideIndex: data.current_slide_index }),
+                        });
+                        initializeState();
+                      }
+                    }
+                  }}
+                  onSaveAs={async (id) => {
+                    const payload = { id, slides, currentSlideIndex };
+                    await fetch('/api/presentations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                  }}
+                  onDelete={async (id) => {
+                    await fetch(`/api/presentations?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+                  }}
+                />
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold text-neutral-300">Image library</h3>
+                <div className="border border-neutral-800 rounded-md p-3">
+                  <ImageLibrary onSelect={() => { /* picking handled inside dialogs; here it's for quick browse */ }} />
+                </div>
+              </div>
+            </div>
+
+          </section>
+
           <section id="presentation-setup" className="space-y-8">
             <div className="flex items-center gap-4">
               <Settings className="h-8 w-8 text-blue-500" />
