@@ -37,7 +37,7 @@ export function PresentationManager({ onLoad, onSaveAs, onDelete }: Props) {
         </CardContent>
       </Card>
 
-      <div className="space-y-2 max-h-80 overflow-auto pr-1">
+      <div className="space-y-2 max-h-60 overflow-auto pr-1">
         {presentations.map((p) => (
           <div key={p.id} className="flex items-center justify-between p-2 rounded-md bg-neutral-900 border border-neutral-800">
             <div className="text-sm">

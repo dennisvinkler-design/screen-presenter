@@ -14,7 +14,7 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
   const [cacheKey, setCacheKey] = useState(0);
 
   async function refresh() {
-    const res = await fetch('/api/images');
+    const res = await fetch('/api/images', { cache: 'no-store' });
     if (res.ok) {
       const { data } = await res.json();
       setImages(data || []);
@@ -39,15 +39,13 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
         if (res.ok) {
           const { data } = await res.json();
           if (data?.url) uploaded.push({ name: data.url.split('/').pop() || data.url, url: data.url });
+          // Optimistisk: tilføj efter hvert enkelt upload
+          setImages((prev) => [{ name: data.url.split('/').pop() || data.url, url: data.url }, ...prev]);
+          setCacheKey((k) => k + 1);
         }
       }
-      if (uploaded.length > 0) {
-        // Optimistisk opdatering så billeder vises med det samme
-        setImages((prev) => [...uploaded, ...prev]);
-        setCacheKey((k) => k + 1);
-      }
-      // Ekstra refresh efter et kort øjeblik for at fange eventuel forsinkelse i Storage-list
-      setTimeout(() => { refresh(); }, 800);
+      // Ekstra refresh efter kort tid for at fange eventual consistent listing
+      setTimeout(() => { refresh(); }, 400);
     } finally {
       setIsUploading(false);
       e.target.value = '';
@@ -66,7 +64,7 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
           <input type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} disabled={isUploading} />
         </label>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-[420px] overflow-auto pr-1">
         {images.map((f) => (
           <Card key={f.url} className="overflow-hidden bg-neutral-900 border-neutral-800 group relative">
             <button
