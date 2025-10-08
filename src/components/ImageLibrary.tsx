@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Image as ImageIcon, Upload } from 'lucide-react';
+import { Image as ImageIcon, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ImageLibraryProps {
   onSelect: (url: string) => void;
@@ -12,18 +12,73 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
   const [images, setImages] = useState<FileRow[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [cacheKey, setCacheKey] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 20;
 
   async function refresh() {
     const res = await fetch('/api/images', { cache: 'no-store' });
     if (res.ok) {
       const { data } = await res.json();
       setImages(data || []);
+      // Only update cache key when images actually change
       setCacheKey((k) => k + 1);
     }
   }
 
   useEffect(() => {
     refresh();
+  }, []);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(images.length / itemsPerPage);
+  const paginatedImages = useMemo(() => {
+    const start = currentPage * itemsPerPage;
+    const end = start + itemsPerPage;
+    return images.slice(start, end);
+  }, [images, currentPage, itemsPerPage]);
+
+  // Reset to first page when images change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [images.length]);
+
+  // Lazy loading image component
+  const LazyImage = useCallback(({ src, alt, className }: { src: string; alt: string; className: string }) => {
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [isInView, setIsInView] = useState(false);
+    const imgRef = useCallback((node: HTMLImageElement | null) => {
+      if (node) {
+        const observer = new IntersectionObserver(
+          ([entry]) => {
+            if (entry.isIntersecting) {
+              setIsInView(true);
+              observer.disconnect();
+            }
+          },
+          { threshold: 0.1 }
+        );
+        observer.observe(node);
+      }
+    }, []);
+
+    return (
+      <div ref={imgRef} className={className}>
+        {isInView && (
+          <img
+            src={src}
+            alt={alt}
+            className={`w-full h-full object-contain transition-opacity duration-200 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+            onLoad={() => setIsLoaded(true)}
+            draggable={false}
+          />
+        )}
+        {!isLoaded && isInView && (
+          <div className="w-full h-full bg-neutral-800 animate-pulse flex items-center justify-center">
+            <ImageIcon className="h-8 w-8 text-neutral-600" />
+          </div>
+        )}
+      </div>
+    );
   }, []);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -41,7 +96,7 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
           if (data?.url) uploaded.push({ name: data.url.split('/').pop() || data.url, url: data.url });
           // Optimistisk: tilføj efter hvert enkelt upload
           setImages((prev) => [{ name: data.url.split('/').pop() || data.url, url: data.url }, ...prev]);
-          setCacheKey((k) => k + 1);
+          setCacheKey(Date.now()); // Use timestamp for new uploads only
         }
       }
       // Ekstra refresh efter kort tid for at fange eventual consistent listing
@@ -65,7 +120,7 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
         </label>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-[560px] overflow-auto pr-1">
-        {images.map((f) => (
+        {paginatedImages.map((f) => (
           <Card key={f.url} className="overflow-hidden bg-neutral-900 border-neutral-800 group relative">
             <button
               onClick={() => onSelect(f.url)}
@@ -78,9 +133,11 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
               }}
             >
               <CardContent className="p-0">
-                <div className="w-full aspect-[4/3] bg-neutral-800">
-                  <img src={`${f.url}?v=${cacheKey}`} alt="" className="w-full h-full object-contain" draggable={false} />
-                </div>
+                <LazyImage 
+                  src={`${f.url}?v=${cacheKey}`} 
+                  alt="" 
+                  className="w-full aspect-[4/3] bg-neutral-800" 
+                />
               </CardContent>
             </button>
             <button
@@ -96,6 +153,40 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
           </Card>
         ))}
       </div>
+      
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4">
+          <div className="text-sm text-neutral-400">
+            Showing {currentPage * itemsPerPage + 1}-{Math.min((currentPage + 1) * itemsPerPage, images.length)} of {images.length} images
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+              disabled={currentPage === 0}
+              className="bg-neutral-800 border-neutral-700 hover:bg-neutral-700"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <span className="text-sm text-neutral-400 px-3">
+              {currentPage + 1} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+              disabled={currentPage >= totalPages - 1}
+              className="bg-neutral-800 border-neutral-700 hover:bg-neutral-700"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
