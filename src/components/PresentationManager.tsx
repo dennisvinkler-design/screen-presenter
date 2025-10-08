@@ -48,6 +48,12 @@ export function PresentationManager({ onLoad, onSaveAs, onDelete }: Props) {
               <Button variant="outline" onClick={async () => { setBusyId(p.id+':load'); await onLoad(p.id); setBusyId(null); }} disabled={busyId===p.id+':load'}>
                 Load
               </Button>
+              <Button variant="outline" onClick={async () => { setBusyId(p.id+':edit'); await onLoad(p.id); setBusyId(null); }} disabled={busyId===p.id+':edit'} className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600">
+                Edit
+              </Button>
+              <Button variant="outline" onClick={async () => { setBusyId(p.id+':save'); await onSaveAs(p.id); setBusyId(null); }} disabled={busyId===p.id+':save'} className="bg-green-600 hover:bg-green-700 text-white border-green-600">
+                Save
+              </Button>
               <Button variant="destructive" onClick={async () => { setBusyId(p.id+':del'); await onDelete(p.id); setBusyId(null); await refresh(); }} disabled={busyId===p.id+':del'}>
                 Delete
               </Button>
