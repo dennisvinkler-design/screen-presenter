@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, memo } from 'react';
 import { usePresentationStore } from '@/store/presentationStore';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import {
   DndContext,
   closestCenter,
@@ -32,7 +33,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ImageWithLoader } from './ImageWithLoader';
+import { SimpleThumbnail } from './SimpleThumbnail';
 interface Slide {
   images: [string, string, string, string];
 }
@@ -41,7 +42,9 @@ interface SortableSlideItemProps {
   index: number;
   onEdit: (index: number) => void;
 }
-function SortableSlideItem({ slide, index, onEdit }: SortableSlideItemProps) {
+
+// Memoized component to prevent unnecessary re-renders
+const SortableSlideItem = memo(({ slide, index, onEdit }: SortableSlideItemProps) => {
   const { deleteSlide } = usePresentationStore();
   const {
     attributes,
@@ -79,7 +82,7 @@ function SortableSlideItem({ slide, index, onEdit }: SortableSlideItemProps) {
                     await updateSlideImages(index, newImages);
                   }}
                 >
-                  <ImageWithLoader src={img} alt={`Slide ${index + 1} Screen ${imgIndex + 1}`} />
+                  <SimpleThumbnail src={img} alt={`Slide ${index + 1} Screen ${imgIndex + 1}`} />
                 </div>
               ))}
             </div>
@@ -112,16 +115,36 @@ function SortableSlideItem({ slide, index, onEdit }: SortableSlideItemProps) {
       </Card>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison to prevent re-renders when props haven't changed
+  return (
+    prevProps.index === nextProps.index &&
+    JSON.stringify(prevProps.slide.images) === JSON.stringify(nextProps.slide.images)
+  );
+});
 export function SlideEditor() {
   const { slides, addSlide, reorderSlides } = usePresentationStore();
   const [editingSlide, setEditingSlide] = useState<{ slide: Slide; index: number } | null>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
+  
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Virtualize when there are many slides (>20)
+  const shouldVirtualize = slides.length > 20;
+
+  const virtualizer = useVirtualizer({
+    count: slides.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 120, // Estimated height of each slide item
+    overscan: 5, // Render 5 extra items outside viewport for smooth scrolling
+    enabled: shouldVirtualize,
+  });
+
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (over && active.id !== over.id) {
@@ -130,18 +153,56 @@ export function SlideEditor() {
       reorderSlides(oldIndex, newIndex);
     }
   }
+
   const handleEdit = (index: number) => {
     setEditingSlide({ slide: slides[index], index });
   };
+
   return (
     <div className="space-y-6">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={slides.map((_, i) => i)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-4">
-            {slides.map((slide, index) => (
-              <SortableSlideItem key={index} index={index} slide={slide} onEdit={handleEdit} />
-            ))}
-          </div>
+          {shouldVirtualize ? (
+            <div
+              ref={parentRef}
+              className="space-y-4 max-h-[600px] overflow-auto pr-2"
+              style={{ contain: 'strict' }}
+            >
+              <div
+                style={{
+                  height: `${virtualizer.getTotalSize()}px`,
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                {virtualizer.getVirtualItems().map((virtualItem) => {
+                  const index = virtualItem.index;
+                  const slide = slides[index];
+                  return (
+                    <div
+                      key={virtualItem.key}
+                      data-index={index}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}
+                    >
+                      <SortableSlideItem index={index} slide={slide} onEdit={handleEdit} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {slides.map((slide, index) => (
+                <SortableSlideItem key={index} index={index} slide={slide} onEdit={handleEdit} />
+              ))}
+            </div>
+          )}
         </SortableContext>
       </DndContext>
       <Button onClick={addSlide} variant="outline" className="w-full border-dashed border-neutral-700 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200">
