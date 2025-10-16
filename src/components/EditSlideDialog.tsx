@@ -69,11 +69,13 @@ export function EditSlideDialog({ isOpen, onOpenChange, slide, slideIndex }: Edi
               ))}
             </div>
             <div className="border border-neutral-800 rounded-md p-3">
-              <ImageLibrary onSelect={(url) => {
-                const firstEmpty = imageUrls.findIndex((u) => !u);
-                const slot = firstEmpty === -1 ? 0 : firstEmpty;
-                handleUrlChange(slot, url);
-              }} />
+              {isOpen && (
+                <ImageLibrary onSelect={(url) => {
+                  const firstEmpty = imageUrls.findIndex((u) => !u);
+                  const slot = firstEmpty === -1 ? 0 : firstEmpty;
+                  handleUrlChange(slot, url);
+                }} />
+              )}
             </div>
           </div>
         </div>

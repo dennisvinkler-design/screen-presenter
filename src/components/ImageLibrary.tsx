@@ -1,33 +1,19 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Image as ImageIcon, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useImageStore } from '@/store/imageStore';
 
 interface ImageLibraryProps {
   onSelect: (url: string) => void;
 }
 
 export function ImageLibrary({ onSelect }: ImageLibraryProps) {
-  type FileRow = { name: string; url: string };
-  const [images, setImages] = useState<FileRow[]>([]);
+  const { images, refreshImages, addImage, removeImage } = useImageStore();
   const [isUploading, setIsUploading] = useState(false);
   const [cacheKey, setCacheKey] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
   const itemsPerPage = 20;
-
-  async function refresh() {
-    const res = await fetch('/api/images', { cache: 'no-store' });
-    if (res.ok) {
-      const { data } = await res.json();
-      setImages(data || []);
-      // Only update cache key when images actually change
-      setCacheKey((k) => k + 1);
-    }
-  }
-
-  useEffect(() => {
-    refresh();
-  }, []);
 
   // Calculate pagination
   const totalPages = Math.ceil(images.length / itemsPerPage);
@@ -42,23 +28,37 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
     setCurrentPage(0);
   }, [images.length]);
 
-  // Lazy loading image component
+  // Lazy loading image component with proper cleanup
   const LazyImage = useCallback(({ src, alt, className }: { src: string; alt: string; className: string }) => {
     const [isLoaded, setIsLoaded] = useState(false);
     const [isInView, setIsInView] = useState(false);
-    const imgRef = useCallback((node: HTMLImageElement | null) => {
+    const observerRef = useRef<IntersectionObserver | null>(null);
+    
+    const imgRef = useCallback((node: HTMLDivElement | null) => {
+      // Cleanup previous observer
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+
       if (node) {
-        const observer = new IntersectionObserver(
+        observerRef.current = new IntersectionObserver(
           ([entry]) => {
             if (entry.isIntersecting) {
               setIsInView(true);
-              observer.disconnect();
+              observerRef.current?.disconnect();
             }
           },
           { threshold: 0.1 }
         );
-        observer.observe(node);
+        observerRef.current.observe(node);
       }
+    }, []);
+
+    // Cleanup on unmount
+    useEffect(() => {
+      return () => {
+        observerRef.current?.disconnect();
+      };
     }, []);
 
     return (
@@ -86,21 +86,21 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
     if (!files || files.length === 0) return;
     setIsUploading(true);
     try {
-      const uploaded: FileRow[] = [];
       for (const file of Array.from(files)) {
         const form = new FormData();
         form.append('file', file);
         const res = await fetch('/api/images/upload', { method: 'POST', body: form });
         if (res.ok) {
           const { data } = await res.json();
-          if (data?.url) uploaded.push({ name: data.url.split('/').pop() || data.url, url: data.url });
-          // Optimistisk: tilføj efter hvert enkelt upload
-          setImages((prev) => [{ name: data.url.split('/').pop() || data.url, url: data.url }, ...prev]);
-          setCacheKey(Date.now()); // Use timestamp for new uploads only
+          if (data?.url) {
+            const newImage = { name: data.url.split('/').pop() || data.url, url: data.url };
+            addImage(newImage);
+            setCacheKey(Date.now()); // Use timestamp for new uploads only
+          }
         }
       }
       // Ekstra refresh efter kort tid for at fange eventual consistent listing
-      setTimeout(() => { refresh(); }, 400);
+      setTimeout(() => { refreshImages(); }, 400);
     } finally {
       setIsUploading(false);
       e.target.value = '';
@@ -145,7 +145,7 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
               onClick={async (e) => {
                 e.stopPropagation();
                 await fetch(`/api/images?name=${encodeURIComponent(f.name)}`, { method: 'DELETE' });
-                setImages((prev) => prev.filter((x) => x.name !== f.name));
+                removeImage(f.name);
               }}
             >
               Delete
