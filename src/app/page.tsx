@@ -147,7 +147,10 @@ export default function HomePage() {
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-neutral-300">Image library</h3>
                 <div className="border border-neutral-800 rounded-md p-3">
-                  <ImageLibrary onSelect={() => { /* picking handled inside dialogs; here it's for quick browse */ }} />
+                  <ImageLibrary 
+                    onSelect={() => { /* picking handled inside dialogs; here it's for quick browse */ }}
+                    showToggle={true}
+                  />
                 </div>
               </div>
             </div>

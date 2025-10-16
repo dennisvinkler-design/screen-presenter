@@ -1,18 +1,20 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Image as ImageIcon, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Image as ImageIcon, Upload, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { useImageStore } from '@/store/imageStore';
 
 interface ImageLibraryProps {
   onSelect: (url: string) => void;
+  showToggle?: boolean;
 }
 
-export function ImageLibrary({ onSelect }: ImageLibraryProps) {
+export function ImageLibrary({ onSelect, showToggle = false }: ImageLibraryProps) {
   const { images, refreshImages, addImage, removeImage } = useImageStore();
   const [isUploading, setIsUploading] = useState(false);
   const [cacheKey, setCacheKey] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
+  const [isOpen, setIsOpen] = useState(!showToggle); // Default to open unless toggle is enabled
   const itemsPerPage = 20;
 
   // Calculate pagination
@@ -114,78 +116,105 @@ export function ImageLibrary({ onSelect }: ImageLibraryProps) {
           <ImageIcon className="h-5 w-5" />
           <span>Image library</span>
         </div>
-        <label className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-neutral-800 hover:bg-neutral-700 cursor-pointer">
-          <Upload className="h-4 w-4" /> Upload
-          <input type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} disabled={isUploading} />
-        </label>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-[560px] overflow-auto pr-1">
-        {paginatedImages.map((f) => (
-          <Card key={f.url} className="overflow-hidden bg-neutral-900 border-neutral-800 group relative">
-            <button
-              onClick={() => onSelect(f.url)}
-              className="block w-full"
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData('text/uri-list', f.url);
-                e.dataTransfer.setData('text/plain', f.url);
-                e.dataTransfer.effectAllowed = 'copy';
-              }}
+        <div className="flex items-center gap-2">
+          {showToggle && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsOpen(!isOpen)}
+              className="bg-neutral-800 border-neutral-700 hover:bg-neutral-700 text-neutral-300"
             >
-              <CardContent className="p-0">
-                <LazyImage 
-                  src={`${f.url}?v=${cacheKey}`} 
-                  alt="" 
-                  className="w-full aspect-[4/3] bg-neutral-800" 
-                />
-              </CardContent>
-            </button>
-            <button
-              className="absolute top-2 right-2 text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white opacity-0 group-hover:opacity-100"
-              onClick={async (e) => {
-                e.stopPropagation();
-                await fetch(`/api/images?name=${encodeURIComponent(f.name)}`, { method: 'DELETE' });
-                removeImage(f.name);
-              }}
-            >
-              Delete
-            </button>
-          </Card>
-        ))}
+              {isOpen ? (
+                <>
+                  <EyeOff className="h-4 w-4 mr-1" />
+                  Luk
+                </>
+              ) : (
+                <>
+                  <Eye className="h-4 w-4 mr-1" />
+                  Åben
+                </>
+              )}
+            </Button>
+          )}
+          <label className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-neutral-800 hover:bg-neutral-700 cursor-pointer">
+            <Upload className="h-4 w-4" /> Upload
+            <input type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} disabled={isUploading} />
+          </label>
+        </div>
       </div>
       
-      {/* Pagination controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-4">
-          <div className="text-sm text-neutral-400">
-            Showing {currentPage * itemsPerPage + 1}-{Math.min((currentPage + 1) * itemsPerPage, images.length)} of {images.length} images
+      {isOpen && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-[560px] overflow-auto pr-1">
+            {paginatedImages.map((f) => (
+              <Card key={f.url} className="overflow-hidden bg-neutral-900 border-neutral-800 group relative">
+                <button
+                  onClick={() => onSelect(f.url)}
+                  className="block w-full"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/uri-list', f.url);
+                    e.dataTransfer.setData('text/plain', f.url);
+                    e.dataTransfer.effectAllowed = 'copy';
+                  }}
+                >
+                  <CardContent className="p-0">
+                    <LazyImage 
+                      src={`${f.url}?v=${cacheKey}`} 
+                      alt="" 
+                      className="w-full aspect-[4/3] bg-neutral-800" 
+                    />
+                  </CardContent>
+                </button>
+                <button
+                  className="absolute top-2 right-2 text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white opacity-0 group-hover:opacity-100"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    await fetch(`/api/images?name=${encodeURIComponent(f.name)}`, { method: 'DELETE' });
+                    removeImage(f.name);
+                  }}
+                >
+                  Delete
+                </button>
+              </Card>
+            ))}
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-              disabled={currentPage === 0}
-              className="bg-neutral-800 border-neutral-700 hover:bg-neutral-700"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Previous
-            </Button>
-            <span className="text-sm text-neutral-400 px-3">
-              {currentPage + 1} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
-              disabled={currentPage >= totalPages - 1}
-              className="bg-neutral-800 border-neutral-700 hover:bg-neutral-700"
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+          
+          {/* Pagination controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
+              <div className="text-sm text-neutral-400">
+                Showing {currentPage * itemsPerPage + 1}-{Math.min((currentPage + 1) * itemsPerPage, images.length)} of {images.length} images
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                  disabled={currentPage === 0}
+                  className="bg-neutral-800 border-neutral-700 hover:bg-neutral-700"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <span className="text-sm text-neutral-400 px-3">
+                  {currentPage + 1} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                  disabled={currentPage >= totalPages - 1}
+                  className="bg-neutral-800 border-neutral-700 hover:bg-neutral-700"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
