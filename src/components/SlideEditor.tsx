@@ -44,8 +44,7 @@ interface SortableSlideItemProps {
 }
 
 // Memoized component to prevent unnecessary re-renders
-const SortableSlideItem = memo(({ slide, index, onEdit }: SortableSlideItemProps) => {
-  const { deleteSlide } = usePresentationStore();
+const SortableSlideItem = memo(({ slide, index, onEdit, onDelete }: SortableSlideItemProps & { onDelete: (index: number) => void }) => {
   const {
     attributes,
     listeners,
@@ -87,44 +86,38 @@ const SortableSlideItem = memo(({ slide, index, onEdit }: SortableSlideItemProps
               ))}
             </div>
           </div>
-          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100">
             <Button variant="ghost" size="icon" onClick={() => onEdit(index)}>
               <Pencil className="h-4 w-4 text-neutral-400" />
             </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Trash2 className="h-4 w-4 text-red-500/80" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="bg-neutral-900 border-neutral-800 text-neutral-200">
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription className="text-neutral-400">
-                    This will permanently delete slide {index + 1}. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel className="bg-neutral-800 border-neutral-700 hover:bg-neutral-700">Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => deleteSlide(index)} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Button variant="ghost" size="icon" onClick={() => onDelete(index)}>
+              <Trash2 className="h-4 w-4 text-red-500/80" />
+            </Button>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }, (prevProps, nextProps) => {
-  // Custom comparison to prevent re-renders when props haven't changed
-  return (
-    prevProps.index === nextProps.index &&
-    JSON.stringify(prevProps.slide.images) === JSON.stringify(nextProps.slide.images)
-  );
+  // Optimized comparison without JSON.stringify
+  if (prevProps.index !== nextProps.index) return false;
+  
+  // Shallow comparison of images array
+  const prevImages = prevProps.slide.images;
+  const nextImages = nextProps.slide.images;
+  
+  if (prevImages.length !== nextImages.length) return false;
+  
+  for (let i = 0; i < prevImages.length; i++) {
+    if (prevImages[i] !== nextImages[i]) return false;
+  }
+  
+  return true;
 });
 export function SlideEditor() {
-  const { slides, addSlide, reorderSlides } = usePresentationStore();
+  const { slides, addSlide, reorderSlides, deleteSlide } = usePresentationStore();
   const [editingSlide, setEditingSlide] = useState<{ slide: Slide; index: number } | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; slideIndex: number | null }>({ isOpen: false, slideIndex: null });
   const parentRef = useRef<HTMLDivElement>(null);
   
   const sensors = useSensors(
@@ -156,6 +149,17 @@ export function SlideEditor() {
 
   const handleEdit = (index: number) => {
     setEditingSlide({ slide: slides[index], index });
+  };
+
+  const handleDeleteClick = (index: number) => {
+    setDeleteDialog({ isOpen: true, slideIndex: index });
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteDialog.slideIndex !== null) {
+      deleteSlide(deleteDialog.slideIndex);
+      setDeleteDialog({ isOpen: false, slideIndex: null });
+    }
   };
 
   return (
@@ -190,7 +194,7 @@ export function SlideEditor() {
                         transform: `translateY(${virtualItem.start}px)`,
                       }}
                     >
-                      <SortableSlideItem index={index} slide={slide} onEdit={handleEdit} />
+                      <SortableSlideItem index={index} slide={slide} onEdit={handleEdit} onDelete={handleDeleteClick} />
                     </div>
                   );
                 })}
@@ -199,7 +203,7 @@ export function SlideEditor() {
           ) : (
             <div className="space-y-4">
               {slides.map((slide, index) => (
-                <SortableSlideItem key={index} index={index} slide={slide} onEdit={handleEdit} />
+                <SortableSlideItem key={index} index={index} slide={slide} onEdit={handleEdit} onDelete={handleDeleteClick} />
               ))}
             </div>
           )}
@@ -208,14 +212,40 @@ export function SlideEditor() {
       <Button onClick={addSlide} variant="outline" className="w-full border-dashed border-neutral-700 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200">
         <Plus className="mr-2 h-4 w-4" /> Add New Slide
       </Button>
-      {editingSlide && (
-        <EditSlideDialog
-          isOpen={!!editingSlide}
-          onOpenChange={(isOpen) => !isOpen && setEditingSlide(null)}
-          slide={editingSlide.slide}
-          slideIndex={editingSlide.index}
-        />
-      )}
+      
+      {/* Pre-rendered EditSlideDialog for instant opening */}
+      <EditSlideDialog
+        isOpen={!!editingSlide}
+        onOpenChange={(isOpen) => !isOpen && setEditingSlide(null)}
+        slide={editingSlide?.slide || null}
+        slideIndex={editingSlide?.index || null}
+      />
+      
+      {/* Shared Delete Dialog */}
+      <AlertDialog open={deleteDialog.isOpen} onOpenChange={(isOpen) => !isOpen && setDeleteDialog({ isOpen: false, slideIndex: null })}>
+        <AlertDialogContent className="bg-neutral-900 border-neutral-800 text-neutral-200">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription className="text-neutral-400">
+              This will permanently delete slide {deleteDialog.slideIndex !== null ? deleteDialog.slideIndex + 1 : ''}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              className="bg-neutral-800 border-neutral-700 hover:bg-neutral-700"
+              onClick={() => setDeleteDialog({ isOpen: false, slideIndex: null })}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
